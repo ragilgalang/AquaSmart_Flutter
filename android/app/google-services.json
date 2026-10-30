@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "960879454719",
+    "firebase_url": "https://aquasmart-20418-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "aquasmart-20418",
+    "storage_bucket": "aquasmart-20418.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:960879454719:android:9c3c116a2aed9571255fca",
+        "android_client_info": {
+          "package_name": "com.example.aquasmart_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgeo2mvMhlBjnRggl2JUtDSHSPta1ZkLY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
