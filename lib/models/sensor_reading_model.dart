@@ -1,17 +1,20 @@
 class SensorReadingModel {
   final double ph;
   final double suhu;
-  final double amonia;
+  final double ketinggianAir;
   final String status;
   final double skor;
   final double dolomitKg;
   final List<String> saran;
   final String waktu;
 
+  // Getter alias untuk kompatibilitas
+  double get amonia => ketinggianAir;
+
   SensorReadingModel({
     required this.ph,
     required this.suhu,
-    required this.amonia,
+    required this.ketinggianAir,
     required this.status,
     required this.skor,
     required this.dolomitKg,
@@ -26,6 +29,13 @@ class SensorReadingModel {
             .toList() ??
         [];
 
+    final rawTinggi = sensor['ketinggian_air'] ??
+        sensor['tinggi_air'] ??
+        json['ketinggian_air'] ??
+        sensor['amonia'] ??
+        json['amonia'] ??
+        0.0;
+
     return SensorReadingModel(
       ph: (sensor['ph'] as num?)?.toDouble() ??
           (json['ph'] as num?)?.toDouble() ??
@@ -33,9 +43,7 @@ class SensorReadingModel {
       suhu: (sensor['suhu'] as num?)?.toDouble() ??
           (json['suhu'] as num?)?.toDouble() ??
           0.0,
-      amonia: (sensor['amonia'] as num?)?.toDouble() ??
-          (json['amonia'] as num?)?.toDouble() ??
-          0.0,
+      ketinggianAir: (rawTinggi as num).toDouble(),
       status: json['status'] as String? ?? 'Tidak Diketahui',
       skor: (json['skor'] as num?)?.toDouble() ?? 0.0,
       dolomitKg: (json['dolomit_kg'] as num?)?.toDouble() ?? 0.0,

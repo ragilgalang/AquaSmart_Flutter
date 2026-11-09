@@ -5,11 +5,11 @@ class AuthProvider extends ChangeNotifier {
   final ApiService api;
   AuthProvider([ApiService? api]) : api = api ?? ApiService();
 
-  bool initialized = false;
-  bool loggedIn = false;
+  bool initialized = true;
+  bool loggedIn = true;
   bool loading = false;
   String? error;
-  String? name;
+  String? name = 'Pembudidaya Maneron';
 
   // Helper alias untuk fleksibilitas pemanggilan
   bool get isLoading => loading;
@@ -18,8 +18,9 @@ class AuthProvider extends ChangeNotifier {
   String? get userName => name;
 
   Future<void> init() async {
-    loggedIn = await api.hasToken();
-    name = await api.userName();
+    final storedName = await api.userName();
+    name = storedName ?? 'Pembudidaya Maneron';
+    loggedIn = true;
     initialized = true;
     notifyListeners();
   }
@@ -27,27 +28,16 @@ class AuthProvider extends ChangeNotifier {
   Future<void> checkAuthStatus() => init();
 
   Future<bool> login(String email, String password) async {
-    loading = true;
-    error = null;
+    loading = false;
+    loggedIn = true;
+    name ??= 'Pembudidaya Maneron';
     notifyListeners();
-    try {
-      await api.login(email, password);
-      name = await api.userName();
-      loggedIn = true;
-      return true;
-    } catch (e) {
-      error = e.toString();
-      return false;
-    } finally {
-      loading = false;
-      notifyListeners();
-    }
+    return true;
   }
 
   Future<void> logout() async {
-    await api.logout();
-    loggedIn = false;
-    name = null;
+    // Fitur login dinonaktifkan
+    loggedIn = true;
     notifyListeners();
   }
 }

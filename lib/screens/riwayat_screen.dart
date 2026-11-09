@@ -428,20 +428,20 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           final l = logs[index];
           final ph = _parseNum(l['ph']);
           final suhu = _parseNum(l['suhu']);
-          final amonia = _parseNum(l['amonia']);
+          final ketinggianAir = _parseNum(l['ketinggian_air'] ?? l['tinggi_air'] ?? l['amonia']);
           final status = l['status']?.toString() ?? 'Sangat Aman';
           final isNormal = (status == 'Sangat Aman' || status == 'Aman');
           final timeStr = _formatWaktuSingkat(l['recorded_at']?.toString() ?? '');
 
           String title = isNormal ? 'Semua parameter normal' : status;
-          if (!isNormal && amonia > 0.1) {
-            title = 'Amonia naik';
+          if (!isNormal && (ketinggianAir < 70 || ketinggianAir > 120)) {
+            title = ketinggianAir < 70 ? 'Air tambak surut' : 'Air tambak meluap';
           } else if (!isNormal && (ph < 7.5 || ph > 8.5)) {
             title = 'pH kurang optimal';
           }
 
           final subtitle =
-              'Suhu ${suhu.toStringAsFixed(1).replaceAll('.', ',')} °C · pH ${ph.toStringAsFixed(1).replaceAll('.', ',')} · Amonia ${amonia.toStringAsFixed(2).replaceAll('.', ',')} ppm';
+              'Suhu ${suhu.toStringAsFixed(1).replaceAll('.', ',')} °C · pH ${ph.toStringAsFixed(1).replaceAll('.', ',')} · Ketinggian ${ketinggianAir.toStringAsFixed(0)} cm';
 
           return Column(
             children: [

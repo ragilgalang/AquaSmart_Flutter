@@ -24,7 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   SensorReading? _reading = SensorReading(
     ph: 7.2,
     suhu: 28.4,
-    amonia: 0.04,
+    ketinggianAir: 85.0,
     waktu: DateTime.now(),
   );
   Map<String, dynamic>? _hasil = {
@@ -57,7 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _reading = SensorReading(
               ph: (sensor['ph'] as num?)?.toDouble() ?? 7.2,
               suhu: (sensor['suhu'] as num?)?.toDouble() ?? 28.4,
-              amonia: (sensor['amonia'] as num?)?.toDouble() ?? 0.04,
+              ketinggianAir: (sensor['ketinggian_air'] ?? sensor['tinggi_air'] ?? sensor['amonia'] as num?)?.toDouble() ?? 85.0,
               waktu: DateTime.tryParse(res['waktu']?.toString() ?? ''),
             );
             _hasil = res;
@@ -139,7 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _firebaseConnected = true;
         _error = null;
       });
-      final h = await _api.evaluasi(r.ph, r.suhu, r.amonia);
+      final h = await _api.evaluasi(r.ph, r.suhu, r.ketinggianAir);
       if (!mounted) return;
       setState(() => _hasil = h);
     } catch (e) {
@@ -267,31 +267,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          // Tombol Keluar dari akun
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: OutlinedButton(
-              onPressed: () => auth.logout(),
-              style: OutlinedButton.styleFrom(
-                backgroundColor: Colors.white,
-                side: const BorderSide(color: AppColors.border, width: 1.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Keluar dari akun',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                ),
-              ),
-            ),
-          ),
           const SizedBox(height: 24),
           // Detail teknis card
           Container(
@@ -342,7 +317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final double phVal = r?.ph ?? 7.2;
     final double suhuVal = r?.suhu ?? 28.4;
-    final double amoniaVal = r?.amonia ?? 0.04;
+    final double ketinggianVal = r?.ketinggianAir ?? 85.0;
     final double dolomitVal = (h?['dolomit_kg'] as num?)?.toDouble() ?? 0.0;
 
     return RefreshIndicator(
@@ -485,12 +460,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Expanded(
                 child: _buildParameterCard(
-                  label: 'Amonia',
-                  value: amoniaVal.toStringAsFixed(2).replaceAll('.', ','),
-                  unit: 'ppm',
-                  badgeText: amoniaVal <= 0.1 ? 'Normal' : 'Perlu dipantau',
-                  isNormal: amoniaVal <= 0.1,
-                  icon: Icons.bubble_chart_outlined,
+                  label: 'Ketinggian Air',
+                  value: ketinggianVal.toStringAsFixed(0),
+                  unit: 'cm',
+                  badgeText: (ketinggianVal >= 70 && ketinggianVal <= 120) ? 'Normal' : 'Perlu dipantau',
+                  isNormal: (ketinggianVal >= 70 && ketinggianVal <= 120),
+                  icon: Icons.water_rounded,
                 ),
               ),
               const SizedBox(width: 14),
@@ -551,7 +526,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(width: 12),
         InkWell(
-          onTap: () => auth.logout(),
+          onTap: () {
+            _connectFirebase();
+            _loadFromBackend();
+            _loadHistoryPreview();
+          },
           borderRadius: BorderRadius.circular(16),
           child: Container(
             width: 46,
@@ -562,7 +541,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               border: Border.all(color: AppColors.border, width: 1.2),
             ),
             child: const Icon(
-              Icons.logout_rounded,
+              Icons.refresh_rounded,
               color: AppColors.textDark,
               size: 22,
             ),

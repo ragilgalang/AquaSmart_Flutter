@@ -95,10 +95,10 @@ class ApiService {
   }
 
   /// Hitung status Fuzzy langsung dari parameter sensor
-  Future<Map<String, dynamic>> evaluasi(double ph, double suhu, double amonia) async {
+  Future<Map<String, dynamic>> evaluasi(double ph, double suhu, double ketinggianAir) async {
     try {
       final res = await dio.post('/evaluasi',
-          data: {'ph': ph, 'suhu': suhu, 'amonia': amonia});
+          data: {'ph': ph, 'suhu': suhu, 'ketinggian_air': ketinggianAir, 'amonia': ketinggianAir});
       return Map<String, dynamic>.from(res.data);
     } on DioException {
       throw 'Gagal menghitung status dari server';

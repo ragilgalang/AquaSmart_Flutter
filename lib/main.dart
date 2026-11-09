@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'screens/home_shell.dart';
-import 'screens/login_screen.dart';
 import 'services/api_service.dart';
 
 void main() async {
@@ -37,14 +36,7 @@ class AquaSmartApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
       ),
-      home: Consumer<AuthProvider>(
-        builder: (context, auth, _) {
-          if (!auth.initialized) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-          return auth.loggedIn ? const HomeShell() : const LoginScreen();
-        },
-      ),
+      home: const HomeShell(),
     );
   }
 }
