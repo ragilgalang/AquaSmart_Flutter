@@ -569,7 +569,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
 
           // Mini 24h Suhu Chart Card
-          _buildMiniChartCard(suhuVal),
+          _buildMiniChartCard(suhuBoxVal),
           const SizedBox(height: 12),
         ],
       ),
