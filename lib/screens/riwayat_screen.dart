@@ -228,7 +228,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
-  /// Kartu Suhu Rata-rata & Grafik Persis Gambar 2
+  /// Kartu Suhu Box Rata-rata & Grafik
   Widget _buildMainAverageCard() {
     List<double> chartPoints = [];
     List<String> xLabels = [];
@@ -236,13 +236,13 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
     if (_logsData.isNotEmpty) {
       final sampleLogs = _logsData.take(15).toList().reversed.toList();
-      chartPoints = sampleLogs.map((l) => _parseNum(l['suhu'])).toList();
+      chartPoints = sampleLogs.map((l) => _parseNum(l['suhu_box'] ?? l['suhu'])).toList();
       xLabels = sampleLogs.map((l) => _formatWaktuSingkat(l['recorded_at'].toString())).toList();
       
       final sum = chartPoints.reduce((a, b) => a + b);
       avgSuhu = sum / chartPoints.length;
     } else if (_harianData.isNotEmpty) {
-      chartPoints = _harianData.map((d) => _parseNum(d['suhu'])).toList();
+      chartPoints = _harianData.map((d) => _parseNum(d['suhu_box'] ?? d['suhu'])).toList();
       xLabels = _harianData.map((d) => d['tanggal'].toString().substring(5)).toList();
       final sum = chartPoints.reduce((a, b) => a + b);
       avgSuhu = sum / chartPoints.length;
@@ -278,7 +278,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Suhu rata-rata',
+                'Suhu Box IoT rata-rata',
                 style: TextStyle(
                   color: AppColors.textMuted,
                   fontSize: 14,
@@ -426,22 +426,33 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
       child: Column(
         children: List.generate(logs.length, (index) {
           final l = logs[index];
-          final ph = _parseNum(l['ph']);
-          final suhu = _parseNum(l['suhu']);
-          final ketinggianAir = _parseNum(l['ketinggian_air'] ?? l['tinggi_air'] ?? l['amonia']);
+          final ketinggianAir = _parseNum(l['ketinggian_air'] ?? l['amonia'] ?? 85.0);
+          final rawHujan = l['hujan'];
+          final isHujan = rawHujan is bool ? rawHujan : (rawHujan == 1 || rawHujan.toString().toLowerCase() == 'true');
+          final tekanan = _parseNum(l['tekanan_udara'] ?? 1013.25);
+          final suhuBox = _parseNum(l['suhu_box'] ?? l['suhu'] ?? 28.0);
+          final rawKipas = l['kipas'];
+          final isKipas = rawKipas != null
+              ? (rawKipas is bool ? rawKipas : rawKipas == 1 || rawKipas.toString().toUpperCase() == 'ON')
+              : (suhuBox >= 35.0);
+
           final status = l['status']?.toString() ?? 'Sangat Aman';
           final isNormal = (status == 'Sangat Aman' || status == 'Aman');
           final timeStr = _formatWaktuSingkat(l['recorded_at']?.toString() ?? '');
 
-          String title = isNormal ? 'Semua parameter normal' : status;
-          if (!isNormal && (ketinggianAir < 70 || ketinggianAir > 120)) {
-            title = ketinggianAir < 70 ? 'Air tambak surut' : 'Air tambak meluap';
-          } else if (!isNormal && (ph < 7.5 || ph > 8.5)) {
-            title = 'pH kurang optimal';
+          String title = isNormal ? 'Sistem Aman (Kipas ${isKipas ? "ON" : "OFF"})' : status;
+          if (isHujan && ketinggianAir > 120) {
+            title = 'Waspada Hujan & Air Meluap';
+          } else if (isHujan) {
+            title = 'Sensor FC-37: Hujan';
+          } else if (suhuBox >= 35.0) {
+            title = 'Suhu Box Hangat (Kipas ON)';
+          } else if (ketinggianAir < 70) {
+            title = 'Air Tambak Surut';
           }
 
           final subtitle =
-              'Suhu ${suhu.toStringAsFixed(1).replaceAll('.', ',')} °C · pH ${ph.toStringAsFixed(1).replaceAll('.', ',')} · Ketinggian ${ketinggianAir.toStringAsFixed(0)} cm';
+              '${isHujan ? "Hujan" : "Kering"} · Tinggi: ${ketinggianAir.toStringAsFixed(0)}cm · Tekanan: ${tekanan.toStringAsFixed(0)}hPa · Box: ${suhuBox.toStringAsFixed(1)}°C (${isKipas ? "Kipas ON" : "Kipas OFF"})';
 
           return Column(
             children: [

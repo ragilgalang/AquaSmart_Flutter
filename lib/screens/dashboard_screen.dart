@@ -22,16 +22,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late final ApiService _api;
   StreamSubscription<DatabaseEvent>? _sub;
   SensorReading? _reading = SensorReading(
-    ph: 7.2,
-    suhu: 28.4,
+    hujan: false,
     ketinggianAir: 85.0,
+    tekananUdara: 1013.25,
+    suhuBox: 28.4,
+    kipas: false,
     waktu: DateTime.now(),
   );
   Map<String, dynamic>? _hasil = {
     'status': 'Sangat Aman',
     'skor': 15.0,
-    'dolomit_kg': 0.0,
-    'saran': ['Kualitas air optimal untuk pertumbuhan udang vaname'],
+    'status_kipas': 'OFF',
+    'status_hujan': 'Tidak Hujan',
+    'saran': ['Semua sensor IoT dalam kondisi normal dan terkendali'],
   };
   String? _error;
   bool _firebaseConnected = false;
@@ -55,9 +58,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (sensor != null && _reading == null) {
           setState(() {
             _reading = SensorReading(
-              ph: (sensor['ph'] as num?)?.toDouble() ?? 7.2,
-              suhu: (sensor['suhu'] as num?)?.toDouble() ?? 28.4,
+              hujan: sensor['hujan'] == true,
               ketinggianAir: (sensor['ketinggian_air'] ?? sensor['tinggi_air'] ?? sensor['amonia'] as num?)?.toDouble() ?? 85.0,
+              tekananUdara: (sensor['tekanan_udara'] ?? sensor['pressure'] as num?)?.toDouble() ?? 1013.25,
+              suhuBox: (sensor['suhu_box'] ?? sensor['suhu'] as num?)?.toDouble() ?? 28.4,
+              kipas: sensor['kipas'] == true || (sensor['status_kipas'] == 'ON'),
               waktu: DateTime.tryParse(res['waktu']?.toString() ?? ''),
             );
             _hasil = res;
@@ -139,7 +144,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _firebaseConnected = true;
         _error = null;
       });
-      final h = await _api.evaluasi(r.ph, r.suhu, r.ketinggianAir);
+      final h = await _api.evaluasi(
+        ketinggianAir: r.ketinggianAir,
+        hujan: r.hujan,
+        tekananUdara: r.tekananUdara,
+        suhuBox: r.suhuBox,
+        kipas: r.kipas,
+      );
       if (!mounted) return;
       setState(() => _hasil = h);
     } catch (e) {
@@ -312,13 +323,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final h = _hasil;
 
     final String statusText = (h?['status'] != null)
-        ? (h!['status'] == 'Sangat Aman' ? 'Kondisi air baik' : h['status'])
-        : 'Kondisi air baik';
+        ? (h!['status'] == 'Sangat Aman' ? 'Kondisi Sistem Aman' : h['status'])
+        : 'Kondisi Sistem Aman';
 
-    final double phVal = r?.ph ?? 7.2;
-    final double suhuVal = r?.suhu ?? 28.4;
+    final bool hujanVal = r?.hujan ?? false;
     final double ketinggianVal = r?.ketinggianAir ?? 85.0;
-    final double dolomitVal = (h?['dolomit_kg'] as num?)?.toDouble() ?? 0.0;
+    final double tekananVal = r?.tekananUdara ?? 1013.25;
+    final double suhuBoxVal = r?.suhuBox ?? 28.4;
+    final bool kipasVal = r?.kipas ?? (suhuBoxVal >= 35.0);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -346,7 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Kolam 1',
+                      'Tambak Maneron - Box IoT',
                       style: TextStyle(
                         color: Color(0xFFA3D9CA),
                         fontSize: 14,
@@ -394,7 +406,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Semua parameter dalam batas aman. Diperbarui pukul ${_formatWaktu(r?.waktu)}.',
+                  'Sensor FC-37, HC-SR04, BMP280 & DS18B20 aktif. Diperbarui ${_formatWaktu(r?.waktu)}.',
                   style: const TextStyle(
                     color: Color(0xFFD4ECE6),
                     fontSize: 13,
@@ -404,14 +416,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Header Parameter air
+          // Status Kipas Pendingin Box IoT
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: kipasVal ? const Color(0xFFE8F5E9) : Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: kipasVal ? const Color(0xFF81C784) : AppColors.border,
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: kipasVal ? const Color(0xFF2E7D32) : const Color(0xFF757575),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.mode_fan_off_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Kipas Box IoT',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        kipasVal
+                            ? 'MENYALA (Suhu Box ${suhuBoxVal.toStringAsFixed(1)}°C ≥ 35°C)'
+                            : 'STANDBY (Suhu Box ${suhuBoxVal.toStringAsFixed(1)}°C < 35°C)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: kipasVal ? const Color(0xFF2E7D32) : AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: kipasVal ? const Color(0xFF4CAF50) : const Color(0xFFEEEEEE),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    kipasVal ? 'ON' : 'OFF',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: kipasVal ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Header Parameter Sensor
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
               Text(
-                'Parameter air',
+                'Parameter Sensor IoT',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -419,7 +504,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               Text(
-                'Langsung dari sensor',
+                '4 Sensor Aktif',
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textMuted,
@@ -434,23 +519,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Expanded(
                 child: _buildParameterCard(
-                  label: 'Suhu',
-                  value: suhuVal.toStringAsFixed(1).replaceAll('.', ','),
-                  unit: '°C',
-                  badgeText: (suhuVal >= 26 && suhuVal <= 32) ? 'Normal' : 'Waspada',
-                  isNormal: (suhuVal >= 26 && suhuVal <= 32),
-                  icon: Icons.thermostat_rounded,
+                  label: 'Sensor Hujan',
+                  value: hujanVal ? 'Hujan' : 'Kering',
+                  unit: 'FC-37',
+                  badgeText: hujanVal ? 'Terdeteksi' : 'Kering',
+                  isNormal: !hujanVal,
+                  icon: Icons.water_drop_rounded,
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: _buildParameterCard(
-                  label: 'pH',
-                  value: phVal.toStringAsFixed(1).replaceAll('.', ','),
-                  unit: '',
-                  badgeText: (phVal >= 7.2 && phVal <= 8.5) ? 'Normal' : 'Perlu dipantau',
-                  isNormal: (phVal >= 7.2 && phVal <= 8.5),
-                  icon: Icons.science_outlined,
+                  label: 'Ketinggian Air',
+                  value: ketinggianVal.toStringAsFixed(0),
+                  unit: 'cm',
+                  badgeText: (ketinggianVal >= 70 && ketinggianVal <= 120) ? 'Normal' : 'Waspada',
+                  isNormal: (ketinggianVal >= 70 && ketinggianVal <= 120),
+                  icon: Icons.straighten_rounded,
                 ),
               ),
             ],
@@ -460,23 +545,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Expanded(
                 child: _buildParameterCard(
-                  label: 'Ketinggian Air',
-                  value: ketinggianVal.toStringAsFixed(0),
-                  unit: 'cm',
-                  badgeText: (ketinggianVal >= 70 && ketinggianVal <= 120) ? 'Normal' : 'Perlu dipantau',
-                  isNormal: (ketinggianVal >= 70 && ketinggianVal <= 120),
-                  icon: Icons.water_rounded,
+                  label: 'Tekanan Udara',
+                  value: tekananVal.toStringAsFixed(0),
+                  unit: 'hPa',
+                  badgeText: (tekananVal >= 1005 && tekananVal <= 1020) ? 'Normal' : 'Waspada',
+                  isNormal: (tekananVal >= 1005 && tekananVal <= 1020),
+                  icon: Icons.speed_rounded,
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: _buildParameterCard(
-                  label: 'Dolomit',
-                  value: dolomitVal.toStringAsFixed(0),
-                  unit: 'kg',
-                  badgeText: dolomitVal == 0 ? 'Normal' : 'Perlu ditabur',
-                  isNormal: dolomitVal == 0,
-                  icon: Icons.grain_rounded,
+                  label: 'Suhu Box IoT',
+                  value: suhuBoxVal.toStringAsFixed(1).replaceAll('.', ','),
+                  unit: '°C',
+                  badgeText: kipasVal ? 'Kipas: ON' : 'Kipas: OFF',
+                  isNormal: suhuBoxVal < 35.0,
+                  icon: Icons.thermostat_rounded,
                 ),
               ),
             ],
